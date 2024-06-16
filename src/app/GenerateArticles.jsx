@@ -41,7 +41,9 @@ const GenerateArticles = () => {
 
       // Fetch data from the server
       const response = await fetch(
-        `api/generatedArticle?url=${encodeURIComponent(url)}`
+        `https://ai-blog-next-js-omega.vercel.app/api/generatedArticle?url=${encodeURIComponent(
+          url
+        )}`
       );
 
       if (!response.ok) {
