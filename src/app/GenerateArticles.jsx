@@ -41,16 +41,13 @@ const GenerateArticles = () => {
 
       // Fetch data from the server
       const response = await fetch(
-        `https://ai-blog-next-eight.vercel.app/api/generatedArticle?url=${encodeURIComponent(
-          url
-        )}`
+        `api/generatedArticle?url=${encodeURIComponent(url)}`
       );
 
       if (!response.ok) {
         throw new Error("Failed to fetch video data");
       }
       const data = await response.json();
-      console.log("hi");
 
       // Save article to Firestore db
       const articleRef = collection(db, "Articles");
