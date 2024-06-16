@@ -20,7 +20,7 @@ const GenerateArticles = () => {
   const auth = getAuth(app);
   const [user] = useAuthState(auth);
   const db = getFirestore(app);
-  const YOUTUBE_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+  // const YOUTUBE_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
 
   const handleGenerate = async () => {
     if (!url) {
@@ -41,7 +41,9 @@ const GenerateArticles = () => {
 
       // Fetch data from the server
       const response = await fetch(
-        `api/generatedArticle?url=${encodeURIComponent(url)}`
+        `https://ai-blog-next-eight.vercel.app/api/generatedArticle?url=${encodeURIComponent(
+          url
+        )}`
       );
 
       if (!response.ok) {
