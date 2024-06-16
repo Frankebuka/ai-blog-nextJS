@@ -50,6 +50,7 @@ const GenerateArticles = () => {
         throw new Error("Failed to fetch video data");
       }
       const data = await response.json();
+      console.log("hi");
 
       // Save article to Firestore db
       const articleRef = collection(db, "Articles");
