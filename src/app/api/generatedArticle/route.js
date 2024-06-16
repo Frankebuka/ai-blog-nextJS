@@ -1,11 +1,11 @@
 import ytdl from "ytdl-core";
 import axios from "axios";
 import FormData from "form-data";
-import ffmpeg from "fluent-ffmpeg";
-// import ffmpegStatic from "ffmpeg-static";
 import { PassThrough } from "stream";
 import { fileTypeFromBuffer } from "file-type";
 import { NextResponse } from "next/server";
+import ffmpeg from "fluent-ffmpeg";
+import ffmpegStatic from "ffmpeg-static";
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
@@ -74,12 +74,12 @@ const streamToBuffer = (stream) => {
   });
 };
 
-// Set ffmpeg path manually
-const ffmpegPath = "/opt/homebrew/bin/ffmpeg";
-ffmpeg.setFfmpegPath(ffmpegPath);
+// // Set ffmpeg path manually
+// const ffmpegPath = "/opt/homebrew/bin/ffmpeg";
+// ffmpeg.setFfmpegPath(ffmpegPath);
 
 // // Set ffmpeg path from ffmpeg-static
-// ffmpeg.setFfmpegPath(ffmpegStatic);
+ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const reencodeToMP3 = (inputBuffer) => {
   return new Promise((resolve, reject) => {
