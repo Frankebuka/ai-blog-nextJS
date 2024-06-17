@@ -50,19 +50,20 @@ const GenerateArticles = () => {
         throw new Error("Failed to fetch video data");
       }
       const data = await response.json();
+      console.log(data);
 
       // Save article to Firestore db
-      const articleRef = collection(db, "Articles");
-      await addDoc(articleRef, {
-        title: data.title,
-        description: data.text,
-        imageUrl: data.thumbnailUrl,
-        createdAt: Timestamp.now().toDate(),
-        createdBy: user.displayName,
-        userId: user.uid,
-        likes: [],
-        comments: [],
-      });
+      // const articleRef = collection(db, "Articles");
+      // await addDoc(articleRef, {
+      //   title: data.title,
+      //   description: data.text,
+      //   imageUrl: data.thumbnailUrl,
+      //   createdAt: Timestamp.now().toDate(),
+      //   createdBy: user.displayName,
+      //   userId: user.uid,
+      //   likes: [],
+      //   comments: [],
+      // });
       toast("Article added successfully", { type: "success" });
       setUrl("");
     } catch (error) {
