@@ -1,343 +1,128 @@
-// import ytdl from "ytdl-core";
-// import axios from "axios";
-// import FormData from "form-data";
-// import { PassThrough } from "stream";
-// import { fileTypeFromBuffer } from "file-type";
-// import { NextResponse } from "next/server";
-// import ffmpeg from "fluent-ffmpeg";
-// import ffmpegStatic from "ffmpeg-static";
-
-// export async function GET(req) {
-//   const { searchParams } = new URL(req.url);
-//   const url = searchParams.get("url");
-
-//   try {
-//     if (!ytdl.validateURL(url)) {
-//       throw new Error("Invalid YouTube URL");
-//     }
-
-//     const info = await ytdl.getInfo(url);
-//     const title = info.videoDetails.title;
-//     const thumbnails = info.videoDetails.thumbnails;
-//     const thumbnailUrl = thumbnails[thumbnails.length - 1].url;
-
-//     // Download the audio
-//     const audioStream = ytdl(url, { filter: "audioonly" });
-//     const audioBuffer = await streamToBuffer(audioStream);
-
-//     // Detect the file type
-//     const type = await fileTypeFromBuffer(audioBuffer);
-
-//     // If the file type is not audio, re-encode it to MP3
-//     if (!type.mime.startsWith("audio/")) {
-//       const mp3Buffer = await reencodeToMP3(audioBuffer);
-//       const mp3Type = await fileTypeFromBuffer(mp3Buffer);
-
-//       if (mp3Type.mime !== "audio/mpeg") {
-//         throw new Error("Invalid audio file type after re-encoding");
-//       }
-
-//       const assemblyResponse = await sendToAssemblyAI(mp3Buffer, mp3Type);
-//       const transcriptId = assemblyResponse.data.id;
-
-//       const transcription = await getTranscription(transcriptId);
-
-//       return NextResponse.json({
-//         title,
-//         thumbnailUrl,
-//         text: transcription.text,
-//       });
-//     } else {
-//       const assemblyResponse = await sendToAssemblyAI(audioBuffer, type);
-//       const transcriptId = assemblyResponse.data.id;
-
-//       const transcription = await getTranscription(transcriptId);
-
-//       return NextResponse.json({
-//         title,
-//         thumbnailUrl,
-//         text: transcription.text,
-//       });
-//     }
-//   } catch (error) {
-//     console.error("Error downloading audio:", error.message);
-//     return new NextResponse("Error downloading audio", { status: 500 });
-//   }
-// }
-
-// const streamToBuffer = (stream) => {
-//   return new Promise((resolve, reject) => {
-//     const bufferArray = [];
-//     stream.on("data", (chunk) => bufferArray.push(chunk));
-//     stream.on("end", () => resolve(Buffer.concat(bufferArray)));
-//     stream.on("error", reject);
-//   });
-// };
-
-// // // Set ffmpeg path manually
-// const ffmpegPath = "/opt/homebrew/bin/ffmpeg";
-// ffmpeg.setFfmpegPath(ffmpegPath);
-
-// // // Set ffmpeg path from ffmpeg-static
-// // ffmpeg.setFfmpegPath(ffmpegStatic);
-
-// const reencodeToMP3 = (inputBuffer) => {
-//   return new Promise((resolve, reject) => {
-//     const outputStream = new PassThrough();
-//     const chunks = [];
-
-//     ffmpeg()
-//       .input(new PassThrough().end(inputBuffer))
-//       .outputFormat("mp3")
-//       .on("error", reject)
-//       .on("end", () => resolve(Buffer.concat(chunks)))
-//       .pipe(outputStream);
-
-//     outputStream.on("data", (chunk) => chunks.push(chunk));
-//     outputStream.on("end", () => resolve(Buffer.concat(chunks)));
-//   });
-// };
-
-// const sendToAssemblyAI = async (audioBuffer, type) => {
-//   const formData = new FormData();
-//   formData.append("audio", audioBuffer, {
-//     filename: "audio.mp3",
-//     contentType: type.mime,
-//   });
-
-//   const uploadResponse = await axios.post(
-//     "https://api.assemblyai.com/v2/upload",
-//     formData,
-//     {
-//       headers: {
-//         ...formData.getHeaders(),
-//         authorization: process.env.NEXT_PUBLIC_ASSEMBLYAI_API_KEY,
-//       },
-//     }
-//   );
-
-//   const audioUrl = uploadResponse.data.upload_url;
-
-//   const transcriptionResponse = await axios.post(
-//     "https://api.assemblyai.com/v2/transcript",
-//     {
-//       audio_url: audioUrl,
-//     },
-//     {
-//       headers: {
-//         authorization: process.env.NEXT_PUBLIC_ASSEMBLYAI_API_KEY,
-//       },
-//     }
-//   );
-
-//   return transcriptionResponse;
-// };
-
-// const getTranscription = async (transcriptId) => {
-//   let status = "processing";
-//   let transcription = null;
-
-//   while (status === "processing" || status === "queued") {
-//     await new Promise((resolve) => setTimeout(resolve, 5000));
-
-//     const response = await axios.get(
-//       `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
-//       {
-//         headers: {
-//           authorization: process.env.NEXT_PUBLIC_ASSEMBLYAI_API_KEY,
-//         },
-//       }
-//     );
-
-//     status = response.data.status;
-//     transcription = response.data;
-
-//     if (status === "error") {
-//       console.error("Transcription error details:", transcription);
-//       throw new Error("Transcription failed");
-//     }
-//   }
-
-//   if (status === "completed") {
-//     return transcription;
-//   } else {
-//     throw new Error("Transcription failed");
-//   }
-// };
-
-import ytdl from "ytdl-core";
+import express from "express";
 import axios from "axios";
 import FormData from "form-data";
-import { Lame } from "node-lame";
-import { PassThrough } from "stream";
-import { fileTypeFromBuffer } from "file-type";
-import { NextResponse } from "next/server";
-import path from "path";
+import dotenv from "dotenv";
+import { exec } from "child_process";
 import fs from "fs";
-import os from "os";
+import path from "path";
 
-export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-  const url = searchParams.get("url");
-  console.log("URL:", url);
+dotenv.config();
 
-  const tempDir = path.resolve(os.tmpdir(), "raw");
-  console.log("Temp Directory:", tempDir);
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true });
-    console.log("Directory created:", tempDir);
-  } else {
-    console.log("Directory exists:", tempDir);
-  }
+const app = express();
+const PORT = process.env.NEXT_PUBLIC_PORT || 4000;
+const __dirname = path.resolve();
 
-  const tempFilePath = path.resolve(tempDir, "audio.mp3");
-  console.log("Temp File Path:", tempFilePath);
+app.use(express.json());
 
-  try {
-    if (!ytdl.validateURL(url)) {
-      throw new Error("Invalid YouTube URL");
-    }
-
-    const info = await ytdl.getInfo(url);
-    const title = info.videoDetails.title;
-    const thumbnails = info.videoDetails.thumbnails;
-    const thumbnailUrl = thumbnails[thumbnails.length - 1].url;
-
-    // Download the audio
-    const audioStream = ytdl(url, { filter: "audioonly" });
-    const audioBuffer = await streamToBuffer(audioStream);
-
-    // Detect the file type
-    const type = await fileTypeFromBuffer(audioBuffer);
-
-    // If the file type is not audio, re-encode it to MP3
-    if (!type.mime.startsWith("audio/")) {
-      const mp3Buffer = await reencodeToMP3(audioBuffer, tempFilePath);
-      const mp3Type = await fileTypeFromBuffer(mp3Buffer);
-
-      if (mp3Type.mime !== "audio/mpeg") {
-        throw new Error("Invalid audio file type after re-encoding");
+const downloadAudio = async (url, output) => {
+  return new Promise((resolve, reject) => {
+    const pythonExecutable = "python3";
+    const scriptPath = path.join(__dirname, "download_audio.py");
+    exec(
+      `${pythonExecutable} ${scriptPath} ${url} ${output}`,
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(output);
+        }
       }
-
-      const assemblyResponse = await sendToAssemblyAI(mp3Buffer, mp3Type);
-      const transcriptId = assemblyResponse.data.id;
-
-      const transcription = await getTranscription(transcriptId);
-
-      return NextResponse.json({
-        title,
-        thumbnailUrl,
-        text: transcription.text,
-      });
-    } else {
-      const assemblyResponse = await sendToAssemblyAI(audioBuffer, type);
-      const transcriptId = assemblyResponse.data.id;
-
-      const transcription = await getTranscription(transcriptId);
-
-      return NextResponse.json({
-        title,
-        thumbnailUrl,
-        text: transcription.text,
-      });
-    }
-  } catch (error) {
-    console.error("Error:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-const streamToBuffer = (stream) => {
-  return new Promise((resolve, reject) => {
-    const bufferArray = [];
-    stream.on("data", (chunk) => bufferArray.push(chunk));
-    stream.on("end", () => resolve(Buffer.concat(bufferArray)));
-    stream.on("error", reject);
+    );
   });
 };
 
-const reencodeToMP3 = (inputBuffer, outputFilePath) => {
-  return new Promise((resolve, reject) => {
-    const encoder = new Lame({
-      output: outputFilePath,
-      bitrate: 192,
-    }).setBuffer(inputBuffer);
+const uploadToAssemblyAI = async (filePath) => {
+  const form = new FormData();
+  form.append("audio", fs.createReadStream(filePath));
 
-    encoder
-      .encode()
-      .then(() => {
-        fs.readFile(outputFilePath, (err, data) => {
-          if (err) return reject(err);
-          resolve(data);
-        });
-      })
-      .catch(reject);
-  });
-};
-
-const sendToAssemblyAI = async (audioBuffer, type) => {
-  const formData = new FormData();
-  formData.append("audio", audioBuffer, {
-    filename: "audio.mp3",
-    contentType: type.mime,
-  });
-
-  const uploadResponse = await axios.post(
+  const response = await axios.post(
     "https://api.assemblyai.com/v2/upload",
-    formData,
+    form,
     {
       headers: {
-        ...formData.getHeaders(),
+        ...form.getHeaders(),
         authorization: process.env.NEXT_PUBLIC_ASSEMBLYAI_API_KEY,
       },
     }
   );
 
-  const audioUrl = uploadResponse.data.upload_url;
-
-  const transcriptionResponse = await axios.post(
-    "https://api.assemblyai.com/v2/transcript",
-    {
-      audio_url: audioUrl,
-    },
-    {
-      headers: {
-        authorization: process.env.NEXT_PUBLIC_ASSEMBLYAI_API_KEY,
-      },
-    }
-  );
-
-  return transcriptionResponse;
+  return response.data.upload_url;
 };
 
-const getTranscription = async (transcriptId) => {
-  let status = "processing";
-  let transcription = null;
+const getTranscription = async (audioUrl) => {
+  const response = await axios.post(
+    "https://api.assemblyai.com/v2/transcript",
+    { audio_url: audioUrl },
+    { headers: { authorization: process.env.NEXT_PUBLIC_ASSEMBLYAI_API_KEY } }
+  );
 
+  const { id } = response.data;
+
+  let status = "processing";
   while (status === "processing" || status === "queued") {
     await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    const response = await axios.get(
-      `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
+    const res = await axios.get(
+      `https://api.assemblyai.com/v2/transcript/${id}`,
       {
-        headers: {
-          authorization: process.env.NEXT_PUBLIC_ASSEMBLYAI_API_KEY,
+        headers: { authorization: process.env.NEXT_PUBLIC_ASSEMBLYAI_API_KEY },
+      }
+    );
+    status = res.data.status;
+    if (status === "completed") return res.data.text;
+  }
+
+  throw new Error("Transcription failed");
+};
+
+app.get("/download", async (req, res) => {
+  const { url } = req.query;
+  try {
+    const videoId = getVideoIdFromUrl(url);
+    const videoMeta = await axios.get(
+      `https://www.googleapis.com/youtube/v3/videos`,
+      {
+        params: {
+          id: videoId,
+          key: process.env.NEXT_PUBLIC_YOUTUBE_API_KEY,
+          part: "snippet",
         },
       }
     );
 
-    status = response.data.status;
-    transcription = response.data;
+    const { title, thumbnails } = videoMeta.data.items[0].snippet;
+    const thumbnailUrl = thumbnails.high.url;
 
-    if (status === "error") {
-      console.error("Transcription error details:", transcription);
-      throw new Error("Transcription failed");
-    }
-  }
+    const output = path.join(__dirname, "audio.mp3");
+    await downloadAudio(url, output);
+    const audioUrl = await uploadToAssemblyAI(output);
+    const transcription = await getTranscription(audioUrl);
 
-  if (status === "completed") {
-    return transcription;
-  } else {
-    throw new Error("Transcription failed");
+    res.json({ title, thumbnailUrl, transcription });
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).send("Error generating article");
   }
+});
+
+const getVideoIdFromUrl = (url) => {
+  const match = url.match(
+    /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^/]+\/[^/]+\/|(?:v|e(?:mbed)?)\/|[^?]*[?](?:.*&)?v=|[^/]+\/(?:[^/]+\/)*)|youtu\.be\/)([^"&?/\s]{11})/
+  );
+  return match ? match[1] : null;
 };
+
+app.get("/fetch-image", async (req, res) => {
+  const { url } = req.query;
+  try {
+    const response = await axios.get(url, { responseType: "arraybuffer" });
+    res.set("Content-Type", response.headers["content-type"]);
+    res.send(response.data);
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    res.status(500).send("Error fetching image");
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
