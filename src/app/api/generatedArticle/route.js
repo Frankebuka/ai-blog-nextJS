@@ -1,23 +1,14 @@
-import express from "express";
 import axios from "axios";
 import FormData from "form-data";
-import dotenv from "dotenv";
 import { exec } from "child_process";
 import fs from "fs";
 import path from "path";
-
-dotenv.config();
-
-const app = express();
-const PORT = process.env.NEXT_PUBLIC_PORT || 4000;
-const __dirname = path.resolve();
-
-app.use(express.json());
+import { NextResponse } from "next/server";
 
 const downloadAudio = async (url, output) => {
   return new Promise((resolve, reject) => {
-    const pythonExecutable = "python3";
-    const scriptPath = path.join(__dirname, "download_audio.py");
+    const pythonExecutable = "python3"; // Use system Python
+    const scriptPath = path.join(process.cwd(), "download_audio.py");
     exec(
       `${pythonExecutable} ${scriptPath} ${url} ${output}`,
       (error, stdout, stderr) => {
@@ -74,8 +65,10 @@ const getTranscription = async (audioUrl) => {
   throw new Error("Transcription failed");
 };
 
-app.get("/download", async (req, res) => {
-  const { url } = req.query;
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const url = searchParams.get("url");
+
   try {
     const videoId = getVideoIdFromUrl(url);
     const videoMeta = await axios.get(
@@ -92,17 +85,21 @@ app.get("/download", async (req, res) => {
     const { title, thumbnails } = videoMeta.data.items[0].snippet;
     const thumbnailUrl = thumbnails.high.url;
 
-    const output = path.join(__dirname, "audio.mp3");
+    const output = path.join(process.cwd(), "audio.mp3");
     await downloadAudio(url, output);
     const audioUrl = await uploadToAssemblyAI(output);
     const transcription = await getTranscription(audioUrl);
 
-    res.json({ title, thumbnailUrl, transcription });
+    return NextResponse.json({
+      title,
+      thumbnailUrl,
+      transcription,
+    });
   } catch (error) {
     console.error("Error:", error.message);
-    res.status(500).send("Error generating article");
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-});
+}
 
 const getVideoIdFromUrl = (url) => {
   const match = url.match(
@@ -110,19 +107,3 @@ const getVideoIdFromUrl = (url) => {
   );
   return match ? match[1] : null;
 };
-
-app.get("/fetch-image", async (req, res) => {
-  const { url } = req.query;
-  try {
-    const response = await axios.get(url, { responseType: "arraybuffer" });
-    res.set("Content-Type", response.headers["content-type"]);
-    res.send(response.data);
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    res.status(500).send("Error fetching image");
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});

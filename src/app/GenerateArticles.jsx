@@ -27,7 +27,11 @@ const GenerateArticles = () => {
     }
     setLoading(true);
     try {
-      const response = await fetch(`download?url=${encodeURIComponent(url)}`);
+      const response = await fetch(
+        `https://ai-blog-next-js-omega.vercel.app/api/generatedArticle?url=${encodeURIComponent(
+          url
+        )}`
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch video data");
       }
@@ -35,7 +39,9 @@ const GenerateArticles = () => {
 
       // Fetch the image from your server
       const imageResponse = await fetch(
-        `/fetch-image?url=${encodeURIComponent(data.thumbnailUrl)}`
+        `https://ai-blog-next-js-omega.vercel.app/api/fetchImage?url=${encodeURIComponent(
+          data.thumbnailUrl
+        )}`
       );
       if (!imageResponse.ok) {
         throw new Error("Failed to fetch thumbnail image");
