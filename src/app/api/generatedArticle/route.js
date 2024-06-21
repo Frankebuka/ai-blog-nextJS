@@ -69,7 +69,6 @@ const getTranscription = async (audioUrl) => {
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const url = searchParams.get("url");
-  console.log(url);
 
   try {
     const videoId = getVideoIdFromUrl(url);
