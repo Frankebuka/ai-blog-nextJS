@@ -1,7 +1,5 @@
 {
   "build": {
-    "env": {
-      "NEXT_PUBLIC_ASSEMBLYAI_API_KEY": "61ea49b34a334e818cb349797178cd2f"
-    }
+    "command": "pip install -r requirements.txt && npm install && next build"
   }
 }
