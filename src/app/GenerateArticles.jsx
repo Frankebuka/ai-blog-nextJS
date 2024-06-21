@@ -35,7 +35,7 @@ const GenerateArticles = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://ai-blog-next-js-omega.vercel.app/api/generatedArticle?url=${encodeURIComponent(
+        `https://ai-blog-next-js-eta.vercel.app/api/generatedArticle?url=${encodeURIComponent(
           url
         )}`
       );
@@ -46,7 +46,7 @@ const GenerateArticles = () => {
 
       // Fetch the image from your server
       const imageResponse = await fetch(
-        `https://ai-blog-next-js-omega.vercel.app/api/fetchImage?url=${encodeURIComponent(
+        `https://ai-blog-next-js-eta.vercel.app/api/fetchImage?url=${encodeURIComponent(
           data.thumbnailUrl
         )}`
       );
