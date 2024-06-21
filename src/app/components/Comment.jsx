@@ -27,7 +27,7 @@ const Comment = ({ id }) => {
   useEffect(() => {
     const docRef = doc(db, "Articles", id);
     onSnapshot(docRef, (snapshot) => {
-      setComments(snapshot.data().comments);
+      setComments(snapshot.data()?.comments);
     });
   }, []);
 

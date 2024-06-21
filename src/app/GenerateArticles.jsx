@@ -11,6 +11,12 @@ import {
   getFirestore,
   addDoc,
 } from "firebase/firestore";
+import {
+  ref,
+  getStorage,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
 import Link from "next/link";
 
 const GenerateArticles = () => {
@@ -19,6 +25,7 @@ const GenerateArticles = () => {
   const auth = getAuth(app);
   const [user] = useAuthState(auth);
   const db = getFirestore(app);
+  const storage = getStorage(app);
 
   const handleGenerate = async () => {
     if (!url) {

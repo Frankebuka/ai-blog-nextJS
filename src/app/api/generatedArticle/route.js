@@ -7,7 +7,8 @@ import { NextResponse } from "next/server";
 
 const downloadAudio = async (url, output) => {
   return new Promise((resolve, reject) => {
-    const pythonExecutable = "python3"; // Use system Python
+    // const pythonExecutable = path.join(process.cwd(), "venv", "bin", "python3");
+    const pythonExecutable = "python3";
     const scriptPath = path.join(process.cwd(), "download_audio.py");
     exec(
       `${pythonExecutable} ${scriptPath} ${url} ${output}`,
@@ -85,7 +86,7 @@ export async function GET(req) {
     const { title, thumbnails } = videoMeta.data.items[0].snippet;
     const thumbnailUrl = thumbnails.high.url;
 
-    const output = path.join(process.cwd(), "audio.mp3");
+    const output = path.join(process.cwd(), "audio.mp3.mp3");
     await downloadAudio(url, output);
     const audioUrl = await uploadToAssemblyAI(output);
     const transcription = await getTranscription(audioUrl);
